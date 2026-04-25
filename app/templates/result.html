@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alzheimer's Detection | Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Assessment Results</h1>
+            <p>Multimodal AI Analysis Complete</p>
+        </div>
+
+        <!-- Prediction Result Section -->
+        <div class="card result-card" id="resultCard">
+            <h2 id="predictionTitle">---</h2>
+            <div class="confidence-section">
+                <div class="confidence-label">Confidence Score</div>
+                <div class="confidence-bar-container">
+                    <div class="confidence-bar" id="confidenceBar" style="width: 0%"></div>
+                </div>
+                <div class="confidence-value" id="confidenceValue">0%</div>
+            </div>
+        </div>
+
+        <!-- Why? Explanation Section -->
+        <div class="card">
+            <h3>🔍 Why This Prediction?</h3>
+            <div class="factors-grid" id="factorsGrid">
+                <div class="factor-card">
+                    <div class="factor-title">🧬 Clinical Factors</div>
+                    <div class="factor-list" id="clinicalFactors"></div>
+                </div>
+                <div class="factor-card">
+                    <div class="factor-title">🗣️ Speech Markers</div>
+                    <div class="factor-list" id="speechFactors"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transcript Section -->
+        <div class="card">
+            <h3>📝 Transcript</h3>
+            <div class="transcript-box" id="transcript">
+                Loading...
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="button-group">
+            <button onclick="window.location.href='/'" class="btn btn-secondary">🔄 New Assessment</button>
+            <button onclick="window.print()" class="btn btn-secondary">🖨️ Print Report</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='result.js') }}"></script>
+</body>
+</html>
