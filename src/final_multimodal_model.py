@@ -1,7 +1,7 @@
 """
 Multimodal Training with Clinical Features
 Audio (WavLM) + Text (BERT) + Clinical (Age, Gender, Education, MMSE)
-Saves model automatically after training
+
 """
 
 import os
@@ -18,9 +18,8 @@ from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
 
-# ============================================================
 # 1. CONFIGURATION
-# ============================================================
+
 BASE_PATH = r"C:\alzheimers_detection"
 METADATA_PATH = os.path.join(BASE_PATH, "data", "processed", "metadata")
 EMBEDDINGS_PATH = os.path.join(BASE_PATH, "data", "processed", "embeddings")
@@ -29,9 +28,8 @@ ENRICHED_CSV = os.path.join(METADATA_PATH, "enriched_dataset.csv")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-# ============================================================
 # 2. LOAD ENRICHED DATASET
-# ============================================================
+
 print("\n" + "=" * 60)
 print("STEP 1: LOADING ENRICHED DATASET")
 print("=" * 60)
@@ -41,9 +39,9 @@ y = (df['class'] == 'Dementia').astype(int).values
 patient_ids = df['patient_id'].values
 print(f"✅ Loaded {len(df)} samples (Control: {sum(y==0)}, Dementia: {sum(y==1)})")
 
-# ============================================================
+
 # 3. LOAD EMBEDDINGS
-# ============================================================
+
 print("\n" + "=" * 60)
 print("STEP 2: LOADING EMBEDDINGS")
 print("=" * 60)
@@ -52,9 +50,8 @@ audio_embeddings = np.load(os.path.join(EMBEDDINGS_PATH, "audio_embeddings.npy")
 text_embeddings = np.load(os.path.join(EMBEDDINGS_PATH, "text_embeddings.npy"))
 print(f"✅ Audio: {audio_embeddings.shape}, Text: {text_embeddings.shape}")
 
-# ============================================================
 # 4. PREPARE CLINICAL FEATURES
-# ============================================================
+
 print("\n" + "=" * 60)
 print("STEP 3: PREPARING CLINICAL FEATURES")
 print("=" * 60)
@@ -68,7 +65,7 @@ print(f"✅ Clinical features shape: {clinical_features.shape}")
 
 # ============================================================
 # 5. CO-ATTENTION MODEL DEFINITION
-# ============================================================
+
 class CoAttentionBlock(nn.Module):
     def __init__(self, dim=768, num_heads=8, dropout=0.15):
         super().__init__()
@@ -153,9 +150,8 @@ def train_fold(X_audio, X_text, X_clinical, y_train, X_audio_val, X_text_val, X_
         val_preds = torch.argmax(val_outputs, dim=1).cpu().numpy()
         return accuracy_score(y_val, val_preds), f1_score(y_val, val_preds), model
 
-# ============================================================
 # 7. CROSS-VALIDATION + SAVE BEST MODEL
-# ============================================================
+
 print("\n" + "=" * 60)
 print("STEP 4: SPEAKER-LEVEL CROSS-VALIDATION")
 print("=" * 60)
@@ -181,9 +177,8 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(audio_embeddings, y, group
         best_accuracy = acc
         best_model_state = fold_model.state_dict()
 
-# ============================================================
 # 8. SAVE BEST MODEL
-# ============================================================
+
 print("\n" + "=" * 60)
 print("STEP 5: SAVING BEST MODEL")
 print("=" * 60)

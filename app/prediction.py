@@ -715,12 +715,12 @@ def predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provid
         print(f"   ⚠️ OVERRIDE: {override_reason}")
     dementia_prob = float(prob[1])
 
-    if dementia_prob > 0.7:
+    if dementia_prob > 0.49:
         final_prediction = "Dementia"
-    elif dementia_prob < 0.3:
+    elif dementia_prob < 0.51:
         final_prediction = "Control"
     else:
-        final_prediction = "Uncertain"
+        final_prediction = "Uncertain - Need Review"
         
     return {
         "prediction":final_prediction,

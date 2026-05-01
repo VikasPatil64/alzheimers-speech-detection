@@ -59,3 +59,9 @@ Thumbs.db
 # Env files
 # ===============================
 .env
+
+
+# Notebook temp files & debug
+notebooks/.ipynb_checkpoints/
+structure.txt
+temp_audio/
