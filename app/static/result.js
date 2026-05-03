@@ -1,4 +1,4 @@
-// static/result.js - Permanent working version
+// static/result.js 
 
 // Load data from sessionStorage
 const data = JSON.parse(sessionStorage.getItem('prediction'));
@@ -17,11 +17,6 @@ if (titleElement) {
     } else if (data.prediction === 'Control') {
         titleElement.textContent = '✅ Healthy';
         titleElement.style.color = '#27ae60';
-
-    } else if (data.prediction === 'Uncertain') {
-    titleElement.textContent = '⚠️ Inconclusive Result';
-    titleElement.style.color = '#f39c12';
-
     } else if (data.error) {
         titleElement.textContent = '⚠️ Error';
         titleElement.style.color = '#e74c3c';
@@ -46,11 +41,9 @@ if (data.confidence !== undefined && data.confidence !== null && !data.error) {
     if (confidenceBar) {
         confidenceBar.style.width = `${percent}%`;
 
-        // ✅ UPDATED LOGIC
+        // Bar color based on prediction
         if (data.prediction === 'Dementia') {
             confidenceBar.className = 'confidence-bar dementia';   // 🔴 red
-        } else if (data.prediction === 'Uncertain') {
-            confidenceBar.className = 'confidence-bar uncertain';  // 🟡 yellow
         } else {
             confidenceBar.className = 'confidence-bar';            // 🟢 green
         }
