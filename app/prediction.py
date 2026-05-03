@@ -57,7 +57,7 @@ class CoAttentionBlock(nn.Module):
 
 # Original Co-Attention Model (Audio + Text only)
 class CoAttentionModel(nn.Module):
-    def __init__(self, audio_dim=512, text_dim=768, proj_dim=768, num_blocks=3, num_heads=8, dropout=0.15):
+    def __init__(self, audio_dim=512, text_dim=768, proj_dim=384, num_blocks=3, num_heads=8, dropout=0.15):
         super().__init__()
         self.audio_proj = nn.Linear(audio_dim, proj_dim)
         self.text_proj = nn.Linear(text_dim, proj_dim)
@@ -80,7 +80,7 @@ class CoAttentionModel(nn.Module):
 
 # New Multimodal Model (Audio + Text + Clinical)
 class MultimodalClinicalModel(nn.Module):
-    def __init__(self, audio_dim=512, text_dim=768, clinical_dim=4, proj_dim=768, num_blocks=3, num_heads=8, dropout=0.15):
+    def __init__(self, audio_dim=512, text_dim=768, clinical_dim=4, proj_dim=384, num_blocks=2, num_heads=8, dropout=0.15):
         super().__init__()
         self.audio_proj = nn.Linear(audio_dim, proj_dim)
         self.text_proj = nn.Linear(text_dim, proj_dim)
@@ -713,14 +713,15 @@ def predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provid
     print(f"   Prediction: {'Dementia' if pred == 1 else 'Control'}, Confidence: {float(prob[pred]):.3f}")
     if override:
         print(f"   ⚠️ OVERRIDE: {override_reason}")
+    
+    THRESHOLD = 0.43  # Optimal from cv results
     dementia_prob = float(prob[1])
 
-    if dementia_prob > 0.49:
+    if dementia_prob > THRESHOLD:
         final_prediction = "Dementia"
-    elif dementia_prob < 0.51:
-        final_prediction = "Control"
     else:
-        final_prediction = "Uncertain - Need Review"
+        final_prediction = "Control"
+    
         
     return {
         "prediction":final_prediction,
