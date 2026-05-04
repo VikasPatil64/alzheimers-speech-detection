@@ -3,6 +3,13 @@
 # ===============================
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
 
 # ===============================
 # Virtual Environment
@@ -10,6 +17,9 @@ __pycache__/
 venv/
 env/
 .venv/
+ENV/
+env.bak/
+venv.bak/
 
 # ===============================
 # Jupyter / unwanted system files
@@ -19,22 +29,49 @@ man/
 labextensions/
 nbconvert/
 *.json.orig
+.ipynb_checkpoints/
+*.ipynb_checkpoints
 
 # ===============================
-# Models
+# Models - Keep small files, ignore large weights
 # ===============================
 *.pth
 *.pt
-models/
+*.h5
+*.onnx
+models/*.pth
+models/*.pt
+!models/*_notebook.pkl
+!models/model_info.json
+models/best_model.pkl
+models/clinical_imputer.pkl
+models/clinical_scaler.pkl
+models/multimodal_model.pkl
+models/scaler.pkl
 
 # ===============================
-# Audio / dataset
+# Generated plots/images
 # ===============================
-*.wav
-*.mp3
-*.flac
+models/*.png
+models/confusion_matrix.png
+models/roc_curve.png
+models/training_history.png
+
+# ===============================
+# Data - Keep metadata, ignore large files
+# ===============================
 data/
-datasets/
+!data/processed/metadata/*.csv
+data/raw/
+data/processed/embeddings/
+data/processed/acoustic_features/
+data/processed/linguistic_features/
+
+# ===============================
+# Embeddings (can regenerate)
+# ===============================
+*.npy
+*.npz
 
 # ===============================
 # Logs
@@ -42,26 +79,63 @@ datasets/
 *.log
 runs/
 outputs/
+logs/
+wandb/
 
 # ===============================
 # IDE
 # ===============================
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+*.sublime-*
 
 # ===============================
 # OS
 # ===============================
 .DS_Store
 Thumbs.db
+desktop.ini
+.directory
 
 # ===============================
 # Env files
 # ===============================
 .env
+.env.local
+.env.*.local
 
+# ===============================
+# Testing & Coverage
+# ===============================
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
 
+# ===============================
+# Flask / Web app temporary
+# ===============================
+instance/
+.webassets-cache
+
+# ===============================
 # Notebook temp files & debug
+# ===============================
 notebooks/.ipynb_checkpoints/
 structure.txt
 temp_audio/
+*.tmp
+
+# ===============================
+# Experiment notebooks (optional - keep if valuable)
+# ===============================
+notebooks/03_finetuning_experiment.ipynb
+
+# ===============================
+# Local config (keep example, ignore actual)
+# ===============================
+config_local.py
+*.local.py
