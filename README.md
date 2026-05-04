@@ -80,7 +80,7 @@ Dropout: 0.15
 
 Total trainable parameters: 5,694,274
 
-📁 Project Structure
+##📁 Project Structure
 
 alzheimers-speech-detection/
 ├── app/                      # Flask web application
@@ -109,7 +109,7 @@ alzheimers-speech-detection/
 └── README.md                # This file
 
 
-🔍 Prediction Pipeline
+##🔍 Prediction Pipeline
 Audio Input (live recording or file upload)
 
 Feature Extraction
@@ -137,7 +137,7 @@ Speech Biomarkers Display
 Pause count, filler rate, speech rate, pitch variability
 
 
-📊 Dataset
+##📊 Dataset
 Source: DementiaBank Pitt Corpus (Cookie Theft picture description task)
 
 Total samples: 439
@@ -164,7 +164,7 @@ Format: MP3/WAV audio + CHAT transcripts
 | **Visualization** | Matplotlib, Seaborn |
 
 
-⚠️ Limitations
+##⚠️ Limitations
 Small dataset (~439 samples) - limited generalization
 
 Single dataset source (Pitt Corpus) - may not generalize to other populations
@@ -176,7 +176,7 @@ Limited clinical features (only 4) - missing genetics, family history, neuroimag
 English only - not tested for other languages
 
 
-⚠️ Medical Disclaimer
+##⚠️ Medical Disclaimer
 This tool is for RESEARCH and EDUCATIONAL purposes only.
 
 It is NOT FDA approved and NOT intended for clinical diagnosis.
@@ -185,12 +185,12 @@ Decisions about Alzheimer's disease should ALWAYS be made by qualified medical p
 
 This system may produce incorrect predictions. Do NOT use it to make healthcare decisions.
 
-📌 Future Work
-Expand dataset (external validation, more samples)
+##📌 Future Work
+Expand dataset (external validation, more samples).
 
-Add MCI (3-class classification)
+Add MCI (3-class classification).
 
-Real-time streaming inference
+Real-time streaming inference.
 
 Mobile app deployment
 
@@ -204,17 +204,17 @@ Explainability module (LIME/SHAP)
 
 Cloud deployment (AWS/GCP)
 
-📄 License
+##📄 License
 MIT License - See LICENSE file for details.
 
-🙏 Acknowledgments
+##🙏 Acknowledgments
 DementiaBank for the Pitt Corpus dataset
 
 Hugging Face for transformer models
 
 OpenAI for Whisper transcription
 
-📧 Contact
+##📧 Contact
 For questions or collaboration opportunities, please open an issue on GitHub.
 
 ⭐ If you find this project useful, please consider giving it a star!
