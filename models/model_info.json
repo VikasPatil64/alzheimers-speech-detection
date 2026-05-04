@@ -1,0 +1,6 @@
+{
+  "optimal_threshold": 0.4300000000000001,
+  "cv_mean_accuracy": 83.36990595611285,
+  "cv_std_accuracy": 1.5549268743372806,
+  "training_date": "2026-05-03 11:39:10.608057"
+}
