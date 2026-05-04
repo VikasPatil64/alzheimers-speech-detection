@@ -175,7 +175,6 @@ Limited clinical features (only 4) - missing genetics, family history, neuroimag
 
 English only - not tested for other languages
 
-CPU-only deployment - slower inference (10-30 seconds per prediction)
 
 ⚠️ Medical Disclaimer
 This tool is for RESEARCH and EDUCATIONAL purposes only.
