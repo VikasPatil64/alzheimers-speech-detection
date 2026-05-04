@@ -1,6 +1,6 @@
 """
-1. Original Co-Attention model (audio + text)
-2. New Multimodal Clinical model (audio + text + clinical features)
+Multimodal Clinical Model (audio + text + clinical features) - FINAL VERSION
+Matches final.ipynb architecture: proj_dim=384, num_blocks=2
 """
 
 import os
@@ -15,6 +15,7 @@ import joblib
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 import parselmouth
+import json
 
 warnings.filterwarnings("ignore")
 
@@ -32,9 +33,8 @@ print(f"Using device: {device}")
 # Model Definitions
 # ============================================================
 
-# Co-Attention Block (for both models)
 class CoAttentionBlock(nn.Module):
-    def __init__(self, dim=768, num_heads=8, dropout=0.15):
+    def __init__(self, dim=384, num_heads=8, dropout=0.25):
         super().__init__()
         self.self_attn = nn.MultiheadAttention(dim, num_heads, dropout=dropout, batch_first=True)
         self.cross_attn = nn.MultiheadAttention(dim, num_heads, dropout=dropout, batch_first=True)
@@ -55,32 +55,9 @@ class CoAttentionBlock(nn.Module):
         x = self.norm3(x + ffn_out)
         return x
 
-# Original Co-Attention Model (Audio + Text only)
-class CoAttentionModel(nn.Module):
-    def __init__(self, audio_dim=512, text_dim=768, proj_dim=384, num_blocks=3, num_heads=8, dropout=0.15):
-        super().__init__()
-        self.audio_proj = nn.Linear(audio_dim, proj_dim)
-        self.text_proj = nn.Linear(text_dim, proj_dim)
-        self.blocks = nn.ModuleList([CoAttentionBlock(proj_dim, num_heads, dropout) for _ in range(num_blocks)])
-        self.fusion = nn.Sequential(
-            nn.Linear(proj_dim*2, proj_dim), nn.ReLU(), nn.Dropout(dropout),
-            nn.Linear(proj_dim, 2)
-        )
-    
-    def forward(self, audio_feat, text_feat):
-        audio_seq = self.audio_proj(audio_feat).unsqueeze(1)
-        text_seq = self.text_proj(text_feat).unsqueeze(1)
-        for block in self.blocks:
-            audio_seq = block(audio_seq, text_seq)
-            text_seq = block(text_seq, audio_seq)
-        audio_pool = audio_seq.squeeze(1)
-        text_pool = text_seq.squeeze(1)
-        concat = torch.cat([audio_pool, text_pool], dim=1)
-        return self.fusion(concat)
-
-# New Multimodal Model (Audio + Text + Clinical)
+# Multimodal Clinical Model - MATCHES final.ipynb (proj_dim=384, num_blocks=2)
 class MultimodalClinicalModel(nn.Module):
-    def __init__(self, audio_dim=512, text_dim=768, clinical_dim=4, proj_dim=384, num_blocks=2, num_heads=8, dropout=0.15):
+    def __init__(self, audio_dim=512, text_dim=768, clinical_dim=4, proj_dim=384, num_blocks=2, num_heads=8, dropout=0.25):
         super().__init__()
         self.audio_proj = nn.Linear(audio_dim, proj_dim)
         self.text_proj = nn.Linear(text_dim, proj_dim)
@@ -122,19 +99,16 @@ audio_processor = None
 audio_model = None
 text_tokenizer = None
 text_model = None
-coattention_model = None          # Original model (audio + text)
-clinical_model = None              # New model (audio + text + clinical)
+clinical_model = None
 clinical_scaler = None
 clinical_imputer = None
-use_clinical_model = True          # Set to False to use original model
+optimal_threshold = 0.43  # From final.ipynb cross-validation
 
 # ============================================================
 # Helper functions for embeddings
 # ============================================================
 def get_audio_embedding(audio_array):
-    """
-    Extract WavLM embedding from audio numpy array
-    """
+    """Extract WavLM embedding from audio numpy array"""
     if isinstance(audio_array, np.ndarray):
         audio = audio_array
     else:
@@ -156,9 +130,7 @@ def get_audio_embedding(audio_array):
     return outputs.embeddings.cpu().numpy().squeeze()
 
 def get_text_embedding(text):
-    """
-    Extract BERT embedding from text
-    """
+    """Extract BERT embedding from text"""
     if not text or not text.strip():
         return np.zeros(768)
     
@@ -168,7 +140,6 @@ def get_text_embedding(text):
     
     return outputs.last_hidden_state[:, 0, :].cpu().numpy().squeeze()
 
-
 # ============================================================
 # DISFLUENCY FEATURE FUNCTIONS
 # ============================================================
@@ -177,70 +148,51 @@ def extract_pause_features_advanced(audio, sr):
     """Extract pause features that distinguish normal vs dementia"""
     non_silent = librosa.effects.split(audio, top_db=25)
     
-    # Get all pause durations
     pauses = []
-    pause_positions = []  # track where pauses occur (in seconds)
+    pause_positions = []
     cumulative_time = 0
     
     for i in range(1, len(non_silent)):
         pause_start = non_silent[i][0] / sr
         pause_end = non_silent[i-1][1] / sr
         pause_duration = pause_start - pause_end
-        if pause_duration > 0.15:  # minimum pause to consider
+        if pause_duration > 0.15:
             pauses.append(pause_duration)
             pause_positions.append(cumulative_time + pause_start)
     
-    # Get speech segment durations
     speech_durations = [(end - start) / sr for start, end in non_silent]
     
-    # Advanced features
     features = {
-        # Basic counts
         'num_pauses': len(pauses),
         'num_speech_segments': len(non_silent),
-        
-        # Pause duration statistics
         'avg_pause_duration': np.mean(pauses) if pauses else 0,
         'max_pause_duration': np.max(pauses) if pauses else 0,
         'pause_duration_std': np.std(pauses) if pauses else 0,
-        
-        # **NEW: Long pause detection (>2 seconds)**
         'long_pauses_count': sum(1 for p in pauses if p > 2.0),
         'long_pause_total_duration': sum(p for p in pauses if p > 2.0),
-        
-        # **NEW: Mid-sentence pauses (requires transcript alignment - simplified)**
-        # Approximate by looking at pause frequency per speech segment
         'pauses_per_speech_segment': len(pauses) / max(1, len(non_silent)),
-        
-        # **NEW: Speech rhythm features**
         'speech_segment_duration_std': np.std(speech_durations) if speech_durations else 0,
         'speech_to_pause_ratio': sum(speech_durations) / (sum(pauses) + 0.001),
-        
-        # **NEW: Pause distribution (early vs late in recording)**
-        # Dementia patients often have more pauses later (fatigue)
         'early_pause_ratio': sum(pauses[:max(1, len(pauses)//2)]) / (sum(pauses) + 0.001) if pauses else 0,
     }
-    
     return features
 
 def extract_filler_features(transcript):
+    """Extract filler word features"""
     text = transcript.lower()
     
-    # Differentiate between natural fillers and pathological ones
     natural_fillers = ['like', 'you know', 'well', 'so']
     pathological_fillers = ['um', 'uh', 'ah', 'er']
     
     natural_count = sum(text.count(f) for f in natural_fillers)
     pathological_count = sum(text.count(f) for f in pathological_fillers)
     total_words = len(text.split())
-    total_fillers = natural_count + pathological_count
     
     return {
         'total_fillers': natural_count + pathological_count,
-        'filler_rate': total_fillers / max(1, total_words),
+        'filler_rate': (natural_count + pathological_count) / max(1, total_words),
         'pathological_filler_rate': pathological_count / max(1, total_words),
         'natural_filler_rate': natural_count / max(1, total_words),
-        # High pathological rate + low natural rate = dementia indicator
         'filler_ratio': pathological_count / max(1, natural_count + 1)
     }
 
@@ -284,7 +236,6 @@ def extract_voice_quality(audio_path):
         pitch = snd.to_pitch()
         jitter = pitch.get_jitter(local=True)
         
-        # For shimmer, need point process
         shimmer = 0
         try:
             point_process = snd.to_point_process("Peaks")
@@ -292,18 +243,16 @@ def extract_voice_quality(audio_path):
         except:
             pass
         
-        return {
-            'jitter': jitter if jitter else 0,
-            'shimmer': shimmer if shimmer else 0
-        }
+        return {'jitter': jitter if jitter else 0, 'shimmer': shimmer if shimmer else 0}
     except:
         return {'jitter': 0, 'shimmer': 0}
+
 # ============================================================
 # Load all models
 # ============================================================
 def load_all_models():
     global whisper_model, audio_processor, audio_model, text_tokenizer, text_model
-    global coattention_model, clinical_model, clinical_scaler, clinical_imputer
+    global clinical_model, clinical_scaler, clinical_imputer, optimal_threshold
     
     print("Loading Whisper...")
     whisper_model = whisper.load_model("base", device=device)
@@ -324,144 +273,49 @@ def load_all_models():
     
     BASE_PATH = r"C:\alzheimers_detection"
     
-    # Load original Co-Attention model (fallback)
-    print("Loading Original Co-Attention model...")
-    coattention_model = CoAttentionModel().to(device)
-    original_model_path = os.path.join(BASE_PATH, "models", "coattention_final_model.pth")
-    if os.path.exists(original_model_path):
-        coattention_model.load_state_dict(torch.load(original_model_path, map_location=device))
-        coattention_model.eval()
-        print("✅ Original Co-Attention model loaded")
-    
-    # Load new Multimodal Clinical model
+    # Load Multimodal Clinical model
     print("Loading Multimodal Clinical model...")
     clinical_model = MultimodalClinicalModel().to(device)
     clinical_model_path = os.path.join(BASE_PATH, "models", "multimodal_clinical_model.pth")
+    
     if os.path.exists(clinical_model_path):
         clinical_model.load_state_dict(torch.load(clinical_model_path, map_location=device))
         clinical_model.eval()
-        print("✅ Multimodal Clinical model loaded")
+        print(f"✅ Model loaded from {clinical_model_path}")
+        
+        # Load optimal threshold
+        threshold_path = os.path.join(BASE_PATH, "models", "model_info.json")
+        if os.path.exists(threshold_path):
+            with open(threshold_path, 'r') as f:
+                info = json.load(f)
+                optimal_threshold = info.get('optimal_threshold', 0.43)
+                print(f"✅ Threshold loaded: {optimal_threshold:.3f}")
     else:
-        print("⚠️ Clinical model not found, using original model only")
-        global use_clinical_model
-        use_clinical_model = False
+        raise FileNotFoundError(f"Model not found at {clinical_model_path}")
     
-    # Load clinical scaler and imputer
-    scaler_path = os.path.join(BASE_PATH, "models", "clinical_scaler.pkl")
-    imputer_path = os.path.join(BASE_PATH, "models", "clinical_imputer.pkl")
+    # Load clinical scaler and imputer (using _notebook versions)
+    scaler_path = os.path.join(BASE_PATH, "models", "clinical_scaler_notebook.pkl")
+    imputer_path = os.path.join(BASE_PATH, "models", "clinical_imputer_notebook.pkl")
     
     if os.path.exists(scaler_path) and os.path.exists(imputer_path):
         clinical_scaler = joblib.load(scaler_path)
         clinical_imputer = joblib.load(imputer_path)
         print("✅ Clinical scaler and imputer loaded")
     else:
-        print("⚠️ Clinical scaler/imputer not found. Clinical features will use default values.")
-        # Create default scaler (no normalization)
+        print("⚠️ Clinical scaler/imputer not found, creating defaults")
         clinical_scaler = StandardScaler()
         clinical_imputer = SimpleImputer(strategy='median')
     
     print("All models ready!")
 
 # ============================================================
-# Prediction functions
+# PREDICTION FUNCTION - KEEP ALL YOUR EXISTING LOGIC
 # ============================================================
-
-def predict_audio_file(audio_path):
-    """
-    Original prediction - uses Co-Attention model (audio + text only)
-    """
-    print(f"📁 Processing: {audio_path}")
-    
-    audio, sr = librosa.load(audio_path, sr=16000, mono=True)
-    if np.max(np.abs(audio)) > 0:
-        audio = audio / np.max(np.abs(audio))
-    
-    max_len = 16000 * 60
-    if len(audio) > max_len:
-        audio = audio[:max_len]
-    else:
-        audio = np.pad(audio, (0, max_len - len(audio)))
-    
-    print("   Transcribing...")
-    result = whisper_model.transcribe(audio, fp16=False)
-    transcript = result["text"]
-    print(f"   Transcript: {transcript[:100]}...")
-    
-    print("   Getting audio embedding...")
-    audio_emb = get_audio_embedding(audio)
-    
-    print("   Getting text embedding...")
-    text_emb = get_text_embedding(transcript)
-    
-    print("   Running Co-Attention model...")
-    audio_t = torch.FloatTensor(audio_emb).unsqueeze(0).to(device)
-    text_t = torch.FloatTensor(text_emb).unsqueeze(0).to(device)
-    
-    with torch.no_grad():
-        logits = coattention_model(audio_t, text_t)
-        prob = torch.softmax(logits, dim=1)[0]
-        pred = torch.argmax(logits, dim=1).item()
-    
-    print(f"   Prediction: {'Dementia' if pred == 1 else 'Control'}, Confidence: {float(prob[pred]):.3f}")
-    
-    return {
-        "prediction": "Dementia" if pred == 1 else "Control",
-        "confidence": float(prob[pred]),
-        "transcript": transcript
-    }
-
-def predict_from_audio_file(audio_path, provided_transcript=None):
-    """
-    Original prediction for uploaded files - uses Co-Attention model
-    """
-    print(f"📁 predict_from_audio_file: {audio_path}")
-    
-    audio, sr = librosa.load(audio_path, sr=16000, mono=True)
-    if np.max(np.abs(audio)) > 0:
-        audio = audio / np.max(np.abs(audio))
-    
-    max_len = 16000 * 60
-    if len(audio) > max_len:
-        audio = audio[:max_len]
-    else:
-        audio = np.pad(audio, (0, max_len - len(audio)))
-    
-    audio_emb = get_audio_embedding(audio)
-    
-    if provided_transcript and provided_transcript.strip():
-        transcript = provided_transcript
-        print(f"   Using provided transcript ({len(transcript)} chars)")
-    else:
-        print("   Transcribing with Whisper...")
-        result = whisper_model.transcribe(audio, fp16=False)
-        transcript = result["text"]
-        print(f"   Transcript: {transcript[:100]}...")
-    
-    text_emb = get_text_embedding(transcript)
-    
-    audio_t = torch.FloatTensor(audio_emb).unsqueeze(0).to(device)
-    text_t = torch.FloatTensor(text_emb).unsqueeze(0).to(device)
-    
-    with torch.no_grad():
-        logits = coattention_model(audio_t, text_t)
-        prob = torch.softmax(logits, dim=1)[0]
-        pred = torch.argmax(logits, dim=1).item()
-    
-    return {
-        "prediction": "Dementia" if pred == 1 else "Control",
-        "confidence": float(prob[pred]),
-        "transcript": transcript
-    }
-
 def predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provided_transcript=None):
     """
-    NEW: Prediction using Multimodal Clinical Model + Disfluency Features
+    Prediction using Multimodal Clinical Model + Disfluency Features
     """
     print(f"📁 Processing: {audio_path}")
-    # ============================================================
-    # VALIDATION: Age and MMSE are MANDATORY
-    # ============================================================
-    import json
     
     # Parse clinical_data if it's a string
     if clinical_data is None:
@@ -534,7 +388,7 @@ def predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provid
             "factors": {}
         }
     
-    # Gender and education are optional (use defaults if missing)
+    # Gender and education (optional)
     gender = clinical_data.get('gender')
     if gender not in [0, 1, '0', '1']:
         gender = 1
@@ -543,7 +397,6 @@ def predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provid
     if education is None or education == '':
         education = 12
     
-    # Create cleaned clinical data
     clinical_data_clean = {
         'age_at_visit': age,
         'gender': int(gender),
@@ -552,7 +405,7 @@ def predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provid
     }
     
     print(f"   Clinical data (validated): {clinical_data_clean}")
-    # ==
+    
     # Load audio
     audio, sr = librosa.load(audio_path, sr=16000, mono=True)
     if np.max(np.abs(audio)) > 0:
@@ -574,12 +427,9 @@ def predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provid
     
     print(f"   Transcript length: {len(transcript.split())} words")
     
-    # ============================================================
-    # EXTRACT DISFLUENCY FEATURES
-    # ============================================================
+    # Extract disfluency features
     pause_feat = extract_pause_features_advanced(audio, sr)
-
-    # Add pause pattern checks (for console/logging and possible override)
+    
     if pause_feat['long_pauses_count'] >= 2:
         print("   ⚠️ Multiple long pauses (>2 sec) detected – possible word-finding difficulty")
     if pause_feat['pauses_per_speech_segment'] > 1.5:
@@ -589,23 +439,19 @@ def predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provid
     speech_rate_feat = extract_speech_rate_features(audio, sr, transcript)
     pitch_feat = extract_pitch_variability(audio, sr)
     
-    # Check for low speech output (dementia indicator)
     word_count = speech_rate_feat['word_count']
     
-    # Get audio and text embeddings
+    # Get embeddings
     audio_emb = get_audio_embedding(audio)
     text_emb = get_text_embedding(transcript)
     
     # Process clinical features
-    if clinical_data is None:
-        clinical_values = np.array([[0.5, 12, 70, 18]])  # Default MMSE changed to 18
-    else:
-        clinical_values = np.array([[
-            clinical_data.get('gender', 0.5),
-            clinical_data.get('education_years', 12),
-            clinical_data.get('age_at_visit', 70),
-            clinical_data.get('mmse_score', 18)  # Changed default to 18 (dementia range)
-        ]])
+    clinical_values = np.array([[
+        clinical_data_clean['gender'],
+        clinical_data_clean['education_years'],
+        clinical_data_clean['age_at_visit'],
+        clinical_data_clean['mmse_score']
+    ]])
     
     if clinical_imputer is not None:
         clinical_values = clinical_imputer.transform(clinical_values)
@@ -622,85 +468,68 @@ def predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provid
         prob = torch.softmax(logits, dim=1)[0]
         pred = torch.argmax(logits, dim=1).item()
     
-    # ============================================================
-    # OVERRIDE PREDICTION FOR LOW SPEECH OUTPUT
-    # ============================================================
+    # Override for low speech output
     override = False
     override_reason = ""
     
-    if word_count < 50 and pred == 0:  # Low speech but model said Healthy
+    if word_count < 50 and pred == 0:
         override = True
         override_reason = f"Very low speech output ({word_count} words in 60 seconds) is a strong indicator of cognitive decline."
-        pred = 1  # Override to Dementia
-        prob[1] = 0.85  # Set high confidence
+        pred = 1
+        prob[1] = 0.85
         prob[0] = 0.15
     
-    # Also check for high filler rate
     if filler_feat['filler_rate'] > 0.10:
         override = True
         override_reason += f" High filler word rate ({filler_feat['filler_rate']*100:.1f}%) detected."
-        
-        # ✅ Soft increase (no forcing)
         prob[1] += 0.05
-        
-        # ✅ Keep within valid range
         prob[1] = min(prob[1], 1.0)
-    # ============================================================
-    # SAFETY CHECKS - Catch False Positives (Healthy flagged as Dementia)
-    # ADD THIS ENTIRE SECTION
-    # ============================================================
     
-    # Get raw clinical values (before scaling)
-    age_raw = clinical_data.get('age_at_visit', 70) if clinical_data else 70
-    mmse_raw = clinical_data.get('mmse_score', 25) if clinical_data else 25
-    education_raw = clinical_data.get('education_years', 12) if clinical_data else 12
+    # Safety checks
+    age_raw = clinical_data_clean['age_at_visit']
+    mmse_raw = clinical_data_clean['mmse_score']
+    education_raw = clinical_data_clean['education_years']
     
-    word_count = len(transcript.split())
     duration_sec = len(audio) / sr
     words_per_minute = (word_count / duration_sec) * 60
     
-    # CHECK 1: Young, educated, high MMSE speakers → reduce dementia risk
     if age_raw < 60 and mmse_raw > 26 and education_raw > 14:
         print("   ⚠️ SAFETY: Young, educated, high MMSE speaker")
         prob[1] -= 0.15
         override = True
         override_reason = "Young age, high education, and normal MMSE indicate low risk."
-
-    # CHECK 2: High word count + good fluency → reduce dementia risk
+    
     if word_count > 120 and words_per_minute > 140:
         print(f"   ⚠️ SAFETY: High word count ({word_count}) and normal speech rate ({words_per_minute:.0f} wpm)")
         prob[1] -= 0.12
         override = True
         override_reason = "Normal speech rate and word count indicate healthy speaker."
-
-    # CHECK 3: Normal MMSE + Good word count → reduce dementia risk
+    
     if mmse_raw >= 26 and word_count > 80:
         print(f"   ⚠️ SAFETY: Normal MMSE ({mmse_raw}) and adequate word count ({word_count})")
         prob[1] -= 0.10
         override = True
         override_reason = "Normal cognitive score and adequate speech output."
-
-    # CHECK 4: Reduce confidence for ambiguous cases
+    
     if age_raw < 65 and prob[1] > 0.85:
         prob[1] *= 0.7
         print(f"   ⚠️ Reduced confidence for young speaker (age {age_raw})")
-
+    
     if education_raw > 16 and prob[1] > 0.80:
         prob[1] *= 0.8
         print(f"   ⚠️ Reduced confidence for highly educated speaker ({education_raw} years)")
-
-    # ✅ IMPORTANT: Clamp probability
+    
+    # Clamp probability
     prob[1] = max(0.0, min(prob[1], 1.0))
     prob[0] = 1 - prob[1]
-    # ============================================================
-    # PREPARE FACTORS FOR DISPLAY
-    # ============================================================
+    
+    # Prepare factors for display
     factors = {
         "clinical": {
-            "age": clinical_data.get('age_at_visit', 'Not provided') if clinical_data else 'Not provided',
-            "gender": "Male" if clinical_data and clinical_data.get('gender') == 1 else "Female" if clinical_data and clinical_data.get('gender') == 0 else "Not provided",
-            "education": clinical_data.get('education_years', 'Not provided') if clinical_data else 'Not provided',
-            "mmse": clinical_data.get('mmse_score', 'Not provided') if clinical_data else 'Not provided'
+            "age": clinical_data_clean['age_at_visit'],
+            "gender": "Male" if clinical_data_clean['gender'] == 1 else "Female",
+            "education": clinical_data_clean['education_years'],
+            "mmse": clinical_data_clean['mmse_score']
         },
         "speech": {
             "words_per_minute": f"{speech_rate_feat['words_per_second']*60:.0f}",
@@ -710,25 +539,33 @@ def predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provid
         }
     }
     
-    print(f"   Prediction: {'Dementia' if pred == 1 else 'Control'}, Confidence: {float(prob[pred]):.3f}")
-    if override:
-        print(f"   ⚠️ OVERRIDE: {override_reason}")
-    
-    THRESHOLD = 0.43  # Optimal from cv results
+    # Calculate both probabilities
     dementia_prob = float(prob[1])
+    healthy_prob = float(prob[0])
 
-    if dementia_prob > THRESHOLD:
+    # Choose the right confidence based on prediction
+    if dementia_prob > optimal_threshold:
         final_prediction = "Dementia"
+        confidence = dementia_prob      # Show dementia probability
     else:
         final_prediction = "Control"
-    
-        
+        confidence = healthy_prob        # Show healthy probability
+
     return {
-        "prediction":final_prediction,
-        "confidence": float(prob[pred]),
+        "prediction": final_prediction,
+        "confidence": confidence,         # ← Now shows correct probability
+        "dementia_probability": dementia_prob,  # Optional: for debugging
+        "healthy_probability": healthy_prob,    # Optional: for debugging
         "transcript": transcript,
         "factors": factors,
         "override": override,
         "override_reason": override_reason if override else None
     }
-   
+
+
+# ============================================================
+# Legacy function for backward compatibility
+# ============================================================
+def predict_audio_file(audio_path):
+    """Legacy function - redirects to clinical prediction with defaults"""
+    return predict_from_audio_file_with_clinical(audio_path, clinical_data=None, provided_transcript=None)
