@@ -219,21 +219,3 @@ For questions or collaboration opportunities, please open an issue on GitHub.
 
 ⭐ If you find this project useful, please consider giving it a star!
 
-text
-
-## Steps:
-
-1. **Select all** the text above (Ctrl+A)
-2. **Copy** it (Ctrl+C)
-3. **Open** your `README.md` file in VS Code or any text editor
-4. **Select all** existing content (Ctrl+A)
-5. **Delete** it (Delete key)
-6. **Paste** the new content (Ctrl+V)
-7. **Save** the file (Ctrl+S)
-
-Then commit:
-
-```bash
-git add README.md
-git commit -m "Update README with correct architecture and complete results"
-git push origin main
