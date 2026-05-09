@@ -181,7 +181,7 @@ This tool is for RESEARCH and EDUCATIONAL purposes only.
 
 It is NOT FDA approved and NOT intended for clinical diagnosis.
 
-Decisions about Alzheimer's disease should ALWAYS be made by qualified medical professionals using standard clinical assessments.
+Decisions about Alzheimers disease should ALWAYS be made by qualified medical professionals using standard clinical assessments.
 
 This system may produce incorrect predictions. Do NOT use it to make healthcare decisions.
 

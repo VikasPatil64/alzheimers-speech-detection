@@ -1,6 +1,10 @@
 {
-  "optimal_threshold": 0.4300000000000001,
-  "cv_mean_accuracy": 83.36990595611285,
-  "cv_std_accuracy": 1.5549268743372806,
-  "training_date": "2026-05-03 11:39:10.608057"
+  "optimal_threshold": 0.4000000000000001,
+  "cv_mean_accuracy": 0.7722309299895507,
+  "cv_std_accuracy": 0.012027617610013128,
+  "cv_mean_precision": 0.7944551419198402,
+  "cv_mean_recall": 0.7443636363636363,
+  "cv_mean_f1": 0.7650941146144123,
+  "cv_mean_auc": 0.8494345681556862,
+  "training_date": "2026-05-09 06:20:09.355056"
 }
