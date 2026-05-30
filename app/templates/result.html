@@ -3,56 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alzheimer's Detection | Results</title>
+    <title>Alzheimer's Detection | Screening Report</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🧠 Assessment Results</h1>
-            <p>Multimodal AI Analysis Complete</p>
-        </div>
-
-        <!-- Prediction Result Section -->
-        <div class="card result-card" id="resultCard">
-            <h2 id="predictionTitle">---</h2>
-            <div class="confidence-section">
-                <div class="confidence-label">Confidence Score</div>
-                <div class="confidence-bar-container">
-                    <div class="confidence-bar" id="confidenceBar" style="width: 0%"></div>
-                </div>
-                <div class="confidence-value" id="confidenceValue">0%</div>
-            </div>
-        </div>
-
-        <!-- Why? Explanation Section -->
-        <div class="card">
-            <h3>🔍 Why This Prediction?</h3>
-            <div class="factors-grid" id="factorsGrid">
-                <div class="factor-card">
-                    <div class="factor-title">🧬 Clinical Factors</div>
-                    <div class="factor-list" id="clinicalFactors"></div>
-                </div>
-                <div class="factor-card">
-                    <div class="factor-title">🗣️ Speech Markers</div>
-                    <div class="factor-list" id="speechFactors"></div>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand-block">
+                <div class="brand-mark">AI</div>
+                <div>
+                    <p class="eyebrow">NeuroScreen</p>
+                    <h1>Screening Report</h1>
                 </div>
             </div>
-        </div>
 
-        <!-- Transcript Section -->
-        <div class="card">
-            <h3>📝 Transcript</h3>
-            <div class="transcript-box" id="transcript">
-                Loading...
-            </div>
-        </div>
+            <nav class="side-nav" aria-label="Report navigation">
+                <a href="/" class="side-nav-link"><span>+</span>New Assessment</a>
+                <a href="#patientHistory" class="side-nav-link active" data-section-link="patientHistory"><span>▦</span>Patient Records</a>
+                <a href="#analysis" class="side-nav-link" data-section-link="analysis"><span>◉</span>Speech Analysis</a>
+                <a href="#reportActions" class="side-nav-link" data-section-link="reportActions"><span>✓</span>Reports</a>
+            </nav>
 
-        <!-- Actions -->
-        <div class="button-group">
-            <button onclick="window.location.href='/'" class="btn btn-secondary">🔄 New Assessment</button>
-            <button onclick="window.print()" class="btn btn-secondary">🖨️ Print Report</button>
-        </div>
+            <section class="history-panel" id="patientHistory">
+                <div class="section-heading compact">
+                    <p class="eyebrow">Records</p>
+                    <h2>Patient History</h2>
+                </div>
+                <label class="sr-only" for="historySearch">Search patient history</label>
+                <input type="search" id="historySearch" class="search-input" placeholder="Search patients">
+                <div id="historyList" class="history-list">
+                    <div class="empty-state">No saved assessments yet.</div>
+                </div>
+            </section>
+        </aside>
+
+        <main class="main-content">
+            <header class="dashboard-hero result-hero" id="analysis">
+                <div>
+                    <p class="eyebrow">AI cognitive screening report</p>
+                    <h2 id="reportPatientName">Assessment Results</h2>
+                    <p class="hero-copy" id="reportMeta">Prediction, confidence, transcript, and extracted speech markers.</p>
+                </div>
+                <div class="risk-badge" id="riskBadge">Pattern pending</div>
+            </header>
+
+            <section class="stats-strip" aria-label="Report statistics">
+                <div class="stat-tile">
+                    <span>Saved Assessments</span>
+                    <strong id="savedAssessmentsCount">0</strong>
+                </div>
+                <div class="stat-tile">
+                    <span>Last Analysis</span>
+                    <strong id="lastAnalysisLabel">None</strong>
+                </div>
+                <div class="stat-tile">
+                    <span>Active Session</span>
+                    <strong id="activeSessionLabel">Report ready</strong>
+                </div>
+            </section>
+
+            <section class="result-layout">
+                <article class="card result-card" id="resultCard">
+                    <div class="result-dashboard">
+                        <div class="risk-meter" id="riskMeter">
+                            <div class="risk-meter-inner">
+                                <span id="confidenceValue">0%</span>
+                                <small>Model Confidence</small>
+                            </div>
+                        </div>
+
+                        <div class="result-copy">
+                            <p class="eyebrow">Prediction</p>
+                            <h2 id="predictionTitle">---</h2>
+                            <p class="ai-interpretation" id="aiInterpretation">AI interpretation will appear after analysis.</p>
+
+                            <div class="confidence-section compact-confidence">
+                                <div class="confidence-label">Model confidence</div>
+                                <div class="confidence-bar-container">
+                                    <div class="confidence-bar" id="confidenceBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="card summary-card">
+                    <div class="section-heading">
+                        <p class="eyebrow">Assessment summary</p>
+                        <h3>Patient Snapshot</h3>
+                    </div>
+                    <div class="metric-grid summary-grid">
+                        <div class="metric-card">
+                            <span>Patient</span>
+                            <strong id="summaryPatientName">Not provided</strong>
+                        </div>
+                        <div class="metric-card">
+                            <span>Patient ID</span>
+                            <strong id="summaryPatientId">Not provided</strong>
+                        </div>
+                        <div class="metric-card">
+                            <span>Screening Pattern</span>
+                            <strong id="summaryRiskLevel">Pending</strong>
+                        </div>
+                        <div class="metric-card">
+                            <span>MMSE</span>
+                            <strong id="summaryMmse">Not provided</strong>
+                        </div>
+                        <div class="metric-card">
+                            <span>Confidence</span>
+                            <strong id="summaryConfidence">0%</strong>
+                        </div>
+                        <div class="metric-card">
+                            <span>Timestamp</span>
+                            <strong id="summaryTimestamp">Not saved</strong>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="card timeline-card">
+                    <div class="section-heading">
+                        <p class="eyebrow">Processing pipeline</p>
+                        <h3>AI Completion Timeline</h3>
+                    </div>
+                    <div class="timeline-list">
+                        <div><span>✓</span>Speech Recorded</div>
+                        <div><span>✓</span>Transcript Generated</div>
+                        <div><span>✓</span>Features Extracted</div>
+                        <div><span>✓</span>Risk Analysis Completed</div>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="section-heading">
+                        <p class="eyebrow">Clinical and speech markers</p>
+                        <h3>Explainability Signals</h3>
+                    </div>
+                    <div class="factors-grid" id="factorsGrid">
+                        <div class="factor-card">
+                            <div class="factor-title">Clinical Factors</div>
+                            <div class="factor-list" id="clinicalFactors"></div>
+                        </div>
+                        <div class="factor-card">
+                            <div class="factor-title">Speech Markers</div>
+                            <div class="factor-list" id="speechFactors"></div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="card transcript-card">
+                    <div class="section-heading inline-heading">
+                        <div>
+                            <p class="eyebrow">Generated transcript</p>
+                            <h3>Speech Transcript</h3>
+                        </div>
+                        <button id="copyTranscriptBtn" class="btn btn-ghost" type="button">Copy Transcript</button>
+                    </div>
+                    <div class="transcript-box" id="transcript">Loading...</div>
+                </article>
+
+                <section class="disclaimer-card">
+                    This system is intended for cognitive screening support only and should not replace professional clinical diagnosis.
+                </section>
+
+                <div class="button-group result-actions" id="reportActions">
+                    <button id="downloadReportBtn" class="btn btn-primary" type="button">Download Report</button>
+                    <button onclick="window.print()" class="btn btn-secondary" type="button">Print Report</button>
+                    <button onclick="window.location.href='/'" class="btn btn-secondary" type="button">New Assessment</button>
+                </div>
+            </section>
+        </main>
     </div>
 
     <script src="{{ url_for('static', filename='result.js') }}"></script>

@@ -3,150 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alzheimer's Detection | Input</title>
+    <title>Alzheimer's Detection | Cognitive Screening</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🧠 Alzheimer's Detection System</h1>
-            <p>Multimodal AI • Speech + Text + Clinical Analysis</p>
-        </div>
-
-        <!-- Tab Navigation -->
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('live')">🎙️ Live Microphone</button>
-            <button class="tab-btn" onclick="switchTab('upload')">📁 Upload File</button>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- LIVE MICROPHONE TAB -->
-        <!-- ============================================================ -->
-        <div id="liveTab" class="tab-content active">
-            <!-- Clinical Information Section -->
-            <div class="card">
-                <h2>📋 Patient Information</h2>
-                <!-- <p class="hint">Providing this information improves accuracy by up to 10%</p> -->
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Age (years)</label>
-                        <input type="number" id="age" placeholder="e.g., 72" min="40" max="100" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Gender</label>
-                        <select id="gender">
-                            <option value="1">Male</option>
-                            <option value="0">Female</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Education (years)</label>
-                        <input type="number" id="education" placeholder="e.g., 12" min="0" max="25">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>MMSE Score (0-30)</label>
-                        <input type="number" id="mmse" placeholder="If known" min="0" max="30" required>
-                    </div>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand-block">
+                <div class="brand-mark">AI</div>
+                <div>
+                    <p class="eyebrow">SpeechDx</p>
+                    <h1>Alzheimer's Screening System</h1>
                 </div>
             </div>
 
-            <!-- Speech Recording Section -->
-            <div class="card">
-                <h2>🎙️ Speech Assessment</h2>
-                
-                <!-- Cookie Theft Picture -->
-                <div class="picture-container">
-                    <img src="{{ url_for('static', filename='cookie_theft.webp') }}" 
-                         alt="Cookie Theft Picture" 
-                         class="cookie-theft-img"
-                         onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Cookie_theft.jpg/800px-Cookie_theft.jpg'">
-                    <p class="picture-caption">📖 Describe everything you see in this picture for 60 seconds</p>
-                </div>
-                
-                <div class="button-group">
-                    <button id="recordBtn" class="btn btn-primary">🎤 Start Recording</button>
-                    <button id="stopBtn" class="btn btn-danger" disabled>⏹️ Stop</button>
-                </div>
-                
-                <div id="timerContainer" class="timer-container hidden">
-                    <div id="timer" class="timer">0:00 / 1:00</div>
-                    <div id="warning" class="warning hidden">⚠️ Please speak for at least 30 seconds for best results</div>
-                </div>
-                
-                <div id="status" class="status">Ready</div>
-                <div id="loader" class="loader hidden">
-                    <div class="spinner"></div>
-                    <p>Analyzing speech and clinical data...</p>
-                </div>
-            </div>
-        </div>
+            <nav class="side-nav" aria-label="Workflow navigation">
+                <a href="#assessment" class="side-nav-link active" data-section-link="assessment"><span>+</span>New Assessment</a>
+                <a href="#patientHistory" class="side-nav-link" data-section-link="patientHistory"><span>▦</span>Patient Records</a>
+                <a href="#speechTask" class="side-nav-link" data-section-link="speechTask"><span>◉</span>Speech Analysis</a>
+                <a href="#reports" class="side-nav-link" data-section-link="reports"><span>✓</span>Reports</a>
+            </nav>
 
-        <!-- ============================================================ -->
-        <!-- UPLOAD FILE TAB -->
-        <!-- ============================================================ -->
-        <div id="uploadTab" class="tab-content" style="display:none;">
-            <!-- Clinical Information Section (same as live) -->
-            <div class="card">
-                <h2>📋 Patient Information</h2>
-                <p class="hint">Providing this information improves accuracy by up to 10%</p>
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Age (years)</label>
-                        <input type="number" id="upload_age" placeholder="e.g., 72" min="40" max="100" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Gender</label>
-                        <select id="upload_gender">
-                            <option value="1">Male</option>
-                            <option value="0">Female</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Education (years)</label>
-                        <input type="number" id="upload_education" placeholder="e.g., 12" min="0" max="25" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>MMSE Score (0-30)</label>
-                        <input type="number" id="upload_mmse" placeholder="0 - 30" min="0" max="30" required>
+            <section class="history-panel" id="patientHistory">
+                <div class="section-heading compact">
+                    <p class="eyebrow">Records</p>
+                    <h2>Patient History</h2>
+                </div>
+                <label class="sr-only" for="historySearch">Search patient history</label>
+                <input type="search" id="historySearch" class="search-input" placeholder="Search patients">
+                <div id="historyList" class="history-list">
+                    <div class="empty-state">No saved assessments yet.</div>
+                </div>
+            </section>
+        </aside>
+
+        <main class="main-content">
+            <header class="dashboard-hero" id="assessment">
+                <div class="hero-content">
+                    <p class="eyebrow">AI cognitive screening support</p>
+                    <h2>Speech-led Alzheimer's risk assessment</h2>
+
+                    <div class="hero-stat inline-stat">
+                        <span>Active mode</span>
+                        <strong id="activeModeLabel">Live microphone</strong>
                     </div>
                 </div>
+            </header>
+
+            <section class="stats-strip" aria-label="Assessment statistics">
+                <div class="stat-tile">
+                    <span>Saved Assessments</span>
+                    <strong id="savedAssessmentsCount">0</strong>
+                </div>
+                <div class="stat-tile">
+                    <span>Last Analysis</span>
+                    <strong id="lastAnalysisLabel">None</strong>
+                </div>
+                <div class="stat-tile">
+                    <span>Active Session</span>
+                    <strong id="activeSessionLabel">Ready</strong>
+                </div>
+            </section>
+
+            <div class="tabs" role="tablist" aria-label="Assessment mode">
+                <button class="tab-btn active" onclick="switchTab('live')" type="button">Live Microphone</button>
+                <button class="tab-btn" onclick="switchTab('upload')" type="button">Upload File</button>
             </div>
 
-            <!-- File Upload Section -->
-            <div class="card">
-                <h2>📁 Upload Audio File</h2>
-                
-                <div class="upload-area">
-                    <div class="form-group">
-                        <label>Audio File (required)</label>
-                        <input type="file" id="audioFile" accept="audio/*">
-                        <small>Supported: WAV, MP3, M4A, FLAC (max 25MB)</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Transcript File (optional)</label>
-                        <input type="file" id="transcriptFile" accept=".txt,.cha">
-                        <small>If not provided, transcript will be auto-generated</small>
-                    </div>
-                    
-                    <button id="uploadBtn" class="btn btn-primary">🔍 Analyze Uploaded File</button>
-                </div>
-                
-                <div id="uploadStatus" class="status" style="margin-top: 20px;">Ready</div>
-                <div id="uploadLoader" class="loader hidden">
-                    <div class="spinner"></div>
-                    <p>Processing your file...</p>
-                </div>
+            <div id="liveTab" class="tab-content active">
+                <section class="content-stack">
+                    <article class="card compact-card">
+                        <div class="section-heading">
+                            <p class="eyebrow">Patient profile</p>
+                            <h2>Clinical Inputs</h2>
+                        </div>
+
+                        <div class="form-grid compact-form">
+                            <div class="form-group">
+                                <label for="patientName">Patient Name</label>
+                                <input type="text" id="patientName" placeholder="e.g., Anika Sharma" autocomplete="name">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="patientId">Patient ID</label>
+                                <input type="text" id="patientId" placeholder="e.g., AD-1024">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="age">Age</label>
+                                <input type="number" id="age" placeholder="72" min="40" max="100" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="gender">Gender</label>
+                                <select id="gender">
+                                    <option value="1">Male</option>
+                                    <option value="0">Female</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="education">Education</label>
+                                <input type="number" id="education" placeholder="Years" min="0" max="25">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="mmse">MMSE</label>
+                                <input type="number" id="mmse" placeholder="0 - 30" min="0" max="30" required>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card speech-card" id="speechTask">
+                        <div class="section-heading inline-heading">
+                            <div>
+                                <p class="eyebrow">Speech analysis</p>
+                                <h2>Cookie Theft Description Task</h2>
+                            </div>
+                            <div id="recordingIndicator" class="recording-indicator">
+                                <span class="pulse-dot"></span>
+                                <strong>Ready</strong>
+                            </div>
+                        </div>
+
+                        <div class="speech-layout">
+                            <div class="picture-container">
+                                <img src="{{ url_for('static', filename='cookie_theft.webp') }}"
+                                     alt="Cookie Theft Picture"
+                                     class="cookie-theft-img"
+                                     onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Cookie_theft.jpg/800px-Cookie_theft.jpg'">
+                                <p class="picture-caption">Describe the scene aloud for up to 60 seconds.</p>
+                            </div>
+
+                            <div class="recording-console">
+                                <div id="timerContainer" class="timer-container hidden">
+                                    <div id="timer" class="timer">0:00 / 1:00</div>
+                                    <div class="waveform" aria-hidden="true">
+                                        <span></span><span></span><span></span><span></span><span></span>
+                                    </div>
+                                    <div id="warning" class="warning hidden">Please speak for at least 30 seconds for best results.</div>
+                                </div>
+
+                                <div class="recording-panel">
+                                    <div>
+                                        <p class="panel-label">Status</p>
+                                        <div id="status" class="status">Ready</div>
+                                    </div>
+                                    <div class="button-group">
+                                        <button id="recordBtn" class="btn btn-primary" type="button">Start Recording</button>
+                                        <button id="stopBtn" class="btn btn-danger" type="button" disabled>Stop</button>
+                                    </div>
+                                </div>
+
+                                <div id="loader" class="loader hidden">
+                                    <div class="spinner"></div>
+                                    <p>Analyzing speech and clinical data...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </section>
             </div>
-        </div>
+
+            <div id="uploadTab" class="tab-content">
+                <section class="content-stack">
+                    <article class="card compact-card">
+                        <div class="section-heading">
+                            <p class="eyebrow">Patient profile</p>
+                            <h2>Clinical Inputs</h2>
+                        </div>
+
+                        <div class="form-grid compact-form">
+                            <div class="form-group">
+                                <label for="upload_patientName">Patient Name</label>
+                                <input type="text" id="upload_patientName" placeholder="e.g., Anika Sharma" autocomplete="name">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="upload_patientId">Patient ID</label>
+                                <input type="text" id="upload_patientId" placeholder="e.g., AD-1024">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="upload_age">Age</label>
+                                <input type="number" id="upload_age" placeholder="72" min="40" max="100" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="upload_gender">Gender</label>
+                                <select id="upload_gender">
+                                    <option value="1">Male</option>
+                                    <option value="0">Female</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="upload_education">Education</label>
+                                <input type="number" id="upload_education" placeholder="Years" min="0" max="25" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="upload_mmse">MMSE</label>
+                                <input type="number" id="upload_mmse" placeholder="0 - 30" min="0" max="30" required>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card">
+                        <div class="section-heading">
+                            <p class="eyebrow">File-based screening</p>
+                            <h2>Upload Assessment Audio</h2>
+                        </div>
+
+                        <div class="upload-area compact-upload">
+                            <div class="form-group">
+                                <label for="audioFile">Audio File</label>
+                                <input type="file" id="audioFile" accept="audio/*">
+                                <small>Supported: WAV, MP3, M4A, FLAC.</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="transcriptFile">Transcript File</label>
+                                <input type="file" id="transcriptFile" accept=".txt,.cha">
+                                <small>Optional. If omitted, transcript is generated automatically.</small>
+                            </div>
+
+                            <div class="upload-actions">
+                                <button id="uploadBtn" class="btn btn-primary" type="button">Analyze Uploaded File</button>
+                                <div id="uploadStatus" class="status">Ready</div>
+                            </div>
+                        </div>
+
+                        <div id="uploadLoader" class="loader hidden">
+                            <div class="spinner"></div>
+                            <p>Processing your file...</p>
+                        </div>
+                    </article>
+                </section>
+            </div>
+
+            <section class="disclaimer-card" id="reports">
+                This system is intended for cognitive screening support only and should not replace professional clinical diagnosis.
+            </section>
+        </main>
     </div>
 
     <script src="{{ url_for('static', filename='input.js') }}"></script>
