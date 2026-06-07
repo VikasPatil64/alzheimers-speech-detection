@@ -3,7 +3,7 @@ DEEP MULTIMODAL: WavLM Audio + BERT Text + Neural Network
 Expected accuracy: 80-88%
 """
 
-import os
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
@@ -21,8 +21,9 @@ warnings.filterwarnings('ignore')
 # ============================================================
 # 1. CONFIGURATION
 # ============================================================
-BASE_PATH = r"C:\alzheimers_detection"
-METADATA_PATH = os.path.join(BASE_PATH, "data", "processed", "metadata", "matched_dataset.csv")
+BASE_DIR = Path(__file__).resolve().parents[1]
+BASE_PATH = BASE_DIR
+METADATA_PATH = BASE_DIR / "data" / "processed" / "metadata" / "matched_dataset.csv"
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
@@ -270,7 +271,7 @@ for epoch in range(50):
     optimizer.step()
 
 # Save
-model_path = os.path.join(BASE_PATH, "models", "deep_multimodal_model.pth")
+model_path = BASE_DIR / "models" / "deep_multimodal_model.pth"
 torch.save(final_model.state_dict(), model_path)
 print(f"✅ Model saved to: {model_path}")
 

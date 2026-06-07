@@ -4,6 +4,7 @@ Matches final.ipynb architecture: proj_dim=384, num_blocks=2
 """
 
 import os
+from pathlib import Path
 import torch
 import numpy as np
 import librosa
@@ -18,6 +19,8 @@ import parselmouth
 import json
 
 warnings.filterwarnings("ignore")
+
+BASE_DIR = Path(__file__).resolve().parents[1]
 
 # Force offline mode to avoid network issues
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -271,22 +274,20 @@ def load_all_models():
     for param in text_model.parameters():
         param.requires_grad = False
     
-    BASE_PATH = r"C:\alzheimers_detection"
-    
     # Load Multimodal Clinical model
     print("Loading Multimodal Clinical model...")
     clinical_model = MultimodalClinicalModel().to(device)
-    clinical_model_path = os.path.join(BASE_PATH, "models", "multimodal_clinical_model.pth")
+    clinical_model_path = BASE_DIR / "models" / "multimodal_clinical_model.pth"
     
-    if os.path.exists(clinical_model_path):
+    if clinical_model_path.exists():
         clinical_model.load_state_dict(torch.load(clinical_model_path, map_location=device))
         clinical_model.eval()
         print(f"✅ Model loaded from {clinical_model_path}")
         
         # Load optimal threshold
-        threshold_path = os.path.join(BASE_PATH, "models", "model_info.json")
-        if os.path.exists(threshold_path):
-            with open(threshold_path, 'r') as f:
+        threshold_path = BASE_DIR / "models" / "model_info.json"
+        if threshold_path.exists():
+            with threshold_path.open('r') as f:
                 info = json.load(f)
                 optimal_threshold = info.get('optimal_threshold', 0.43)
                 print(f"✅ Threshold loaded: {optimal_threshold:.3f}")
@@ -294,10 +295,10 @@ def load_all_models():
         raise FileNotFoundError(f"Model not found at {clinical_model_path}")
     
     # Load clinical scaler and imputer (using _notebook versions)
-    scaler_path = os.path.join(BASE_PATH, "models", "clinical_scaler_notebook.pkl")
-    imputer_path = os.path.join(BASE_PATH, "models", "clinical_imputer_notebook.pkl")
+    scaler_path = BASE_DIR / "models" / "clinical_scaler_notebook.pkl"
+    imputer_path = BASE_DIR / "models" / "clinical_imputer_notebook.pkl"
     
-    if os.path.exists(scaler_path) and os.path.exists(imputer_path):
+    if scaler_path.exists() and imputer_path.exists():
         clinical_scaler = joblib.load(scaler_path)
         clinical_imputer = joblib.load(imputer_path)
         print("✅ Clinical scaler and imputer loaded")

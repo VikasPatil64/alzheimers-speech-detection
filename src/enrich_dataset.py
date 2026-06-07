@@ -4,18 +4,19 @@ Run this once to create enriched_dataset.csv
 """
 
 import pandas as pd
-import os
+from pathlib import Path
 
 # ============================================================
 # CONFIGURATION
 # ============================================================
-BASE_PATH = r"C:\alzheimers_detection"
-RAW_DATA_PATH = os.path.join(BASE_PATH, "data", "raw")
-PROCESSED_PATH = os.path.join(BASE_PATH, "data", "processed")
-METADATA_PATH = os.path.join(PROCESSED_PATH, "metadata")
+BASE_DIR = Path(__file__).resolve().parents[1]
+BASE_PATH = BASE_DIR
+RAW_DATA_PATH = BASE_DIR / "data" / "raw"
+PROCESSED_PATH = BASE_DIR / "data" / "processed"
+METADATA_PATH = PROCESSED_PATH / "metadata"
 
 # Ensure metadata directory exists
-os.makedirs(METADATA_PATH, exist_ok=True)
+METADATA_PATH.mkdir(parents=True, exist_ok=True)
 
 # ============================================================
 # 1. LOAD EXISTING MATCHED DATASET
@@ -24,7 +25,7 @@ print("=" * 60)
 print("STEP 1: LOADING EXISTING DATASET")
 print("=" * 60)
 
-matched_path = os.path.join(METADATA_PATH, "matched_dataset.csv")
+matched_path = METADATA_PATH / "matched_dataset.csv"
 matched_df = pd.read_csv(matched_path)
 print(f"✅ Loaded matched dataset: {matched_df.shape}")
 print(f"   Columns: {matched_df.columns.tolist()}")
@@ -36,12 +37,12 @@ print("\n" + "=" * 60)
 print("STEP 2: LOADING METADATA SPREADSHEET")
 print("=" * 60)
 
-metadata_path = os.path.join(RAW_DATA_PATH, "PItt-data.xlsx")
+metadata_path = RAW_DATA_PATH / "PItt-data.xlsx"
 
 # Check if file exists
-if not os.path.exists(metadata_path):
+if not metadata_path.exists():
     print(f"❌ ERROR: Metadata file not found at: {metadata_path}")
-    print("   Please move PItt-data.xlsx to: C:\\alzheimers_detection\\data\\raw\\")
+    print(f"   Please move PItt-data.xlsx to: {RAW_DATA_PATH}")
     exit(1)
 
 # Load the 'data' sheet - header is at row 2 (0-indexed)
@@ -161,12 +162,12 @@ print("\n" + "=" * 60)
 print("STEP 7: SAVING ENRICHED DATASET")
 print("=" * 60)
 
-enriched_path = os.path.join(METADATA_PATH, "enriched_dataset.csv")
+enriched_path = METADATA_PATH / "enriched_dataset.csv"
 enriched_df.to_csv(enriched_path, index=False)
 print(f"✅ Saved to: {enriched_path}")
 
 # Also save the clinical features separately for reference
-clinical_path = os.path.join(METADATA_PATH, "clinical_features.csv")
+clinical_path = METADATA_PATH / "clinical_features.csv"
 clinical_df.to_csv(clinical_path, index=False)
 print(f"✅ Clinical features saved to: {clinical_path}")
 
