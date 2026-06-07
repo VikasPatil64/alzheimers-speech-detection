@@ -4,7 +4,7 @@ Audio (WavLM) + Text (BERT) + Clinical (Age, Gender, Education, MMSE)
 
 """
 
-import os
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
@@ -20,10 +20,11 @@ warnings.filterwarnings('ignore')
 
 # 1. CONFIGURATION
 
-BASE_PATH = r"C:\alzheimers_detection"
-METADATA_PATH = os.path.join(BASE_PATH, "data", "processed", "metadata")
-EMBEDDINGS_PATH = os.path.join(BASE_PATH, "data", "processed", "embeddings")
-ENRICHED_CSV = os.path.join(METADATA_PATH, "enriched_dataset.csv")
+BASE_DIR = Path(__file__).resolve().parents[1]
+BASE_PATH = BASE_DIR
+METADATA_PATH = BASE_DIR / "data" / "processed" / "metadata"
+EMBEDDINGS_PATH = BASE_DIR / "data" / "processed" / "embeddings"
+ENRICHED_CSV = METADATA_PATH / "enriched_dataset.csv"
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
@@ -46,8 +47,8 @@ print("\n" + "=" * 60)
 print("STEP 2: LOADING EMBEDDINGS")
 print("=" * 60)
 
-audio_embeddings = np.load(os.path.join(EMBEDDINGS_PATH, "audio_embeddings.npy"))
-text_embeddings = np.load(os.path.join(EMBEDDINGS_PATH, "text_embeddings.npy"))
+audio_embeddings = np.load(EMBEDDINGS_PATH / "audio_embeddings.npy")
+text_embeddings = np.load(EMBEDDINGS_PATH / "text_embeddings.npy")
 print(f"✅ Audio: {audio_embeddings.shape}, Text: {text_embeddings.shape}")
 
 # 4. PREPARE CLINICAL FEATURES
@@ -183,8 +184,8 @@ print("\n" + "=" * 60)
 print("STEP 5: SAVING BEST MODEL")
 print("=" * 60)
 
-os.makedirs(os.path.join(BASE_PATH, "models"), exist_ok=True)
-model_path = os.path.join(BASE_PATH, "models", "multimodal_clinical_model.pth")
+(BASE_DIR / "models").mkdir(parents=True, exist_ok=True)
+model_path = BASE_DIR / "models" / "multimodal_clinical_model.pth"
 torch.save(best_model_state, model_path)
 print(f"✅ Best model saved to: {model_path}")
 print(f"   Best validation accuracy: {best_accuracy*100:.2f}%")
@@ -223,8 +224,8 @@ print("STEP 6: SAVING SCALER AND IMPUTER")
 print("=" * 60)
 
 import joblib
-scaler_path = os.path.join(BASE_PATH, "models", "clinical_scaler.pkl")
-imputer_path = os.path.join(BASE_PATH, "models", "clinical_imputer.pkl")
+scaler_path = BASE_DIR / "models" / "clinical_scaler.pkl"
+imputer_path = BASE_DIR / "models" / "clinical_imputer.pkl"
 
 joblib.dump(scaler, scaler_path)
 joblib.dump(imputer, imputer_path)

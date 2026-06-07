@@ -4,6 +4,7 @@ import base64
 import os
 import uuid
 import time
+from pathlib import Path
 from werkzeug.utils import secure_filename
 import json
 
@@ -16,8 +17,9 @@ print("Models ready!")
 
 # Configuration
 ALLOWED_EXTENSIONS = {'wav', 'mp3', 'm4a', 'flac'}
-TEMP_FOLDER = r"C:\alzheimers_detection\temp_audio"
-os.makedirs(TEMP_FOLDER, exist_ok=True)
+BASE_DIR = Path(__file__).resolve().parents[1]
+TEMP_FOLDER = BASE_DIR / "temp_audio"
+TEMP_FOLDER.mkdir(parents=True, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -50,14 +52,14 @@ def predict():
         
         # Create unique temp file
         temp_filename = f"audio_{uuid.uuid4().hex}.wav"
-        temp_path = os.path.join(TEMP_FOLDER, temp_filename)
+        temp_path = TEMP_FOLDER / temp_filename
         
         # Save the audio file
-        with open(temp_path, "wb") as f:
+        with temp_path.open("wb") as f:
             f.write(audio_bytes)
         
         print(f"✅ Saved: {temp_path}")
-        print(f"   File size: {os.path.getsize(temp_path)} bytes")
+        print(f"   File size: {temp_path.stat().st_size} bytes")
         print(f"   Clinical data: {clinical_data}")
         
         # Predict using the new clinical model
@@ -76,9 +78,9 @@ def predict():
         
     finally:
         # Clean up
-        if temp_path and os.path.exists(temp_path):
+        if temp_path and temp_path.exists():
             try:
-                os.unlink(temp_path)
+                temp_path.unlink()
                 print(f"🗑️ Deleted: {temp_path}")
             except Exception as e:
                 print(f"Could not delete: {e}")
@@ -125,12 +127,12 @@ def analyze_upload():
         # Save uploaded audio as WAV
         unique_id = uuid.uuid4().hex
         audio_filename = f"upload_{unique_id}.wav"
-        audio_path = os.path.join(TEMP_FOLDER, audio_filename)
+        audio_path = TEMP_FOLDER / audio_filename
         
         # Convert to WAV using pydub
         from pydub import AudioSegment
         audio_segment = AudioSegment.from_file(audio_file)
-        audio_segment.export(audio_path, format="wav")
+        audio_segment.export(str(audio_path), format="wav")
         print(f"✅ Saved uploaded audio: {audio_path}")
         
         # Check for optional transcript upload
@@ -158,11 +160,12 @@ def analyze_upload():
         return jsonify({"success": False, "error": str(e)})
         
     finally:
-        if audio_path and os.path.exists(audio_path):
+        if audio_path and audio_path.exists():
             try:
-                os.unlink(audio_path)
+                audio_path.unlink()
             except:
                 pass
 if __name__ == "__main__":
-    print("🚀 Starting Flask server at http://localhost:5000")
-    app.run(debug=False, host="0.0.0.0", port=5000)
+    port = int(os.getenv("PORT", 5000))
+    print(f"Starting Flask server at http://localhost:{port}")
+    app.run(debug=False, host="0.0.0.0", port=port)
